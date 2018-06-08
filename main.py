@@ -3,22 +3,45 @@ import urllib3
 import pandas as pd
 import csv
 import re
+import csv
 from openpyxl import load_workbook
-import urllib.request, json
+import urllib.request
+import json
 isbns = []
 invalid_link = []
 # -- change --
-wb = load_workbook(filename='src.xlsx')
-ws = wb['Sheet1']
 start = 1
 end = 300
-column = 'O'
+
+try:
+    wb = load_workbook(filename='src.xlsx')
+    data = wb['Sheet1']
+    column = 'O'
+    for i in range(start, end + 1):  # change
+        temp = str(data[column + str(i)].value)
+        if len(temp) < 11:
+            isbns.append(temp.zfill(10))
+        else:
+            isbns.append(temp.zfill(13))
+except Exception:
+    with open('src.csv') as f:
+        reader = csv.reader(f)
+        isbns = []
+        for row in reader:
+            if len(str(row[14])) < 11:
+                isbns.append(str(row[14]).zfill(10)) 
+            if len(str(row[14])) > 10:
+                isbns.append(str(row[14]).zfill(13)) 
+        try:
+            isbns = isbns[start: end + 1]
+        except:
+            isbns = isbns[start:]
+
+
 # -- change --
 
-for i in range(start, end + 1): # change 
-    isbns.append(str(ws[column + str(i)].value).zfill(13))
 print('start at line ' + str(start) + '\nend at line ' + str(end))
-print('all isbns: ' +str(isbns))
+print('all isbns: ' + str(isbns))
 browser = mechanicalsoup.StatefulBrowser()
 
 lst_dic = []
@@ -26,14 +49,15 @@ lst_dic = []
 df = pd.DataFrame()
 index = 0
 
+
 def runDic(browser):
     diction = {}
-    try:        
+    try:
         diction['title'] = browser.get_current_page().select_one(
             '#bibdata').select_one('.title').text.replace('\n', '')
     except Exception:
         diction['title'] = None
-    try:    
+    try:
         diction["author"] = browser.get_current_page().select_one(
             '#bib-author-cell').text.replace('\n', '')
     except Exception:
@@ -43,43 +67,43 @@ def runDic(browser):
             '#bib-publisher-cell').text.replace('\n', '')
     except Exception:
         diction["publisher"] = None
-    try:    
+    try:
         diction["edition_format"] = browser.get_current_page().select_one(
             '#bib-itemType-cell').text.replace('\n', '').replace('\xa0', '')
     except Exception:
         diction["edition_format"] = None
-    try:    
+    try:
         diction["summary"] = browser.get_current_page().select_one(
             '#bib-summary-cell').text.replace('\n', '').strip()
     except Exception:
         diction["summary"] = None
-    try:    
+    try:
         diction["subjects"] = browser.get_current_page().select_one(
             '#subject-terms').text.replace('\n', '').replace(' -- ', ' ')
     except Exception:
         diction["subjects"] = None
-    try:    
+    try:
         diction["genre"] = browser.get_current_page().select_one(
             '#details-genre').text.replace('\n', '')
     except Exception:
         diction["genre"] = None
 
-    try:    
+    try:
         diction["doctype"] = browser.get_current_page().select_one(
             '#details-doctype').text.replace('\n', '')
     except Exception:
         diction["doctype"] = None
-    try:    
+    try:
         diction["notes"] = browser.get_current_page().select_one(
             '#details-notes').text.replace('\n', '')
     except Exception:
         diction["notes"] = None
-    try:    
+    try:
         diction["ISBN"] = [browser.get_current_page().select_one(
             '#details-standardno').text.replace('\n', '').strip('ISBN:').replace(' ', ' ')]
     except Exception:
         diction["ISBN"] = None
-    try:    
+    try:
         diction["responsibility"] = browser.get_current_page(
         ).select_one('#details-respon').text.replace('\n', '')
     except Exception:
@@ -96,16 +120,17 @@ def runDic(browser):
 
 for link in isbns:
     index += 1
-    
+
     with urllib.request.urlopen(f'http://xisbn.worldcat.org/webservices/xid/isbn/{link}?method=getEditions&fl=*&format=json') as url:
         data = json.loads(url.read().decode())
+        print(data)
         try:
             # can use this directely
             lst = data[list(data.keys())[1]]
+            dirUrl = lst[0]['url'][0]
         except:
-            invalid_link.append(link);
+            invalid_link.append(link)
             continue
-        dirUrl = lst[0]['url'][0]
 
         try:
             with browser.open(dirUrl):
@@ -117,10 +142,10 @@ for link in isbns:
             continue
 
 df_valid = pd.DataFrame(lst_dic)
-df_valid.to_csv('valid.csv', mode = 'a')
+df_valid.to_csv('valid.csv', mode='a')
 print('invalid isbns: ' + str(invalid_link))
 df_invalid = pd.DataFrame({
     "invalid link": invalid_link
 })
 
-df_invalid.to_csv('invalid.csv', mode = 'a')
+df_invalid.to_csv('invalid.csv', mode='a')
