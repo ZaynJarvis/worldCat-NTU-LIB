@@ -16,7 +16,7 @@ column = 'O'
 # -- change --
 
 for i in range(start, end + 1): # change 
-    isbns.append(str(ws[column + str(i)].value).zfill(10)) # change
+    isbns.append(str(ws[column + str(i)].value).zfill(13))
 print('start at line ' + str(start) + '\nend at line ' + str(end))
 print('all isbns: ' +str(isbns))
 browser = mechanicalsoup.StatefulBrowser()
