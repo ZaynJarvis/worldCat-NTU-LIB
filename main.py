@@ -11,7 +11,7 @@ isbns = []
 invalid_link = []
 # -- change --
 start = 1
-end = 300
+end = 5
 
 try:
     wb = load_workbook(filename='src.xlsx')
@@ -135,8 +135,9 @@ for link in isbns:
         try:
             with browser.open(dirUrl):
                 diction = runDic(browser)
-                print('valid index ' + str(index))
                 if (diction):
+                    print('valid index ' + str(index))
+                    diction['from ISBN'] = link
                     lst_dic.append(diction)
         except Exception as e:
             continue
